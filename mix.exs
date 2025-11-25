@@ -29,7 +29,7 @@ defmodule NbStack.MixProject do
   defp deps do
     [
       # Installer framework
-      {:igniter, "~> 0.5"},
+      {:igniter, "~> 0.7", only: [:dev, :test]},
 
       # Documentation
       {:ex_doc, "~> 0.30", only: :dev, runtime: false}
