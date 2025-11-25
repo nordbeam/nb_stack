@@ -1,4 +1,4 @@
-if Code.ensure_loaded?(Igniter) do
+if Code.ensure_loaded?(Igniter.Mix.Task) do
   defmodule Mix.Tasks.NbStack.Install do
     @moduledoc """
     Installs and configures the complete nb_ frontend stack for Phoenix.
