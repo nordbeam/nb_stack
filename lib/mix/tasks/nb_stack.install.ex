@@ -78,13 +78,22 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
 
     @impl Igniter.Mix.Task
     def igniter(igniter) do
-      framework = igniter.args.options[:framework] || "react"
-      typescript = igniter.args.options[:typescript] || true
-      ssr = igniter.args.options[:ssr] || false
+      # Get options - defaults are already applied by Igniter schema
+      framework = igniter.args.options[:framework]
+      typescript = igniter.args.options[:typescript]
+      ssr = igniter.args.options[:ssr]
+
+      # Validate and normalize framework
+      framework =
+        if framework in ["react", "vue", "svelte"] do
+          framework
+        else
+          "react"
+        end
 
       igniter
-      |> print_welcome()
-      |> validate_options()
+      |> print_welcome(framework, typescript, ssr)
+      |> validate_options(framework)
       # Add GitHub dependencies manually (until published to Hex)
       |> add_github_deps()
       # Configure nb_routes (doesn't have an Igniter installer, uses Mix task)
@@ -101,7 +110,7 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
         "--output",
         "assets/js/routes.js"
       ])
-      |> print_success()
+      |> print_success(framework, typescript, ssr)
     end
 
     # Add GitHub dependencies
@@ -119,11 +128,8 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
     end
 
     # Build options for nb_vite installer
-    defp build_vite_opts(framework, typescript) do
-      case framework do
-        "react" -> if typescript, do: ["--typescript"], else: []
-        _ -> if typescript, do: ["--typescript"], else: []
-      end
+    defp build_vite_opts(_framework, typescript) do
+      if typescript, do: ["--typescript"], else: []
     end
 
     # Build options for nb_serializer installer
@@ -135,19 +141,12 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
     # Build options for nb_inertia installer
     defp build_inertia_opts(framework, typescript, ssr) do
       ["--client-framework", framework, "--camelize-props"] ++
-        if typescript,
-          do: ["--typescript"],
-          else:
-            [] ++
-              if(ssr, do: ["--ssr"], else: [])
+        if(typescript, do: ["--typescript"], else: []) ++
+        if(ssr, do: ["--ssr"], else: [])
     end
 
     # Print welcome message
-    defp print_welcome(igniter) do
-      framework = igniter.args.options[:framework] || "react"
-      typescript = igniter.args.options[:typescript] || true
-      ssr = igniter.args.options[:ssr] || false
-
+    defp print_welcome(igniter, framework, typescript, ssr) do
       message = """
       ╔═════════════════════════════════════════════════════════════════╗
       ║                    NB Stack Installer                           ║
@@ -169,14 +168,14 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
       Igniter.add_notice(igniter, message)
     end
 
-    # Validate options
-    defp validate_options(igniter) do
-      framework = igniter.args.options[:framework]
+    # Validate options and add warning if framework was invalid
+    defp validate_options(igniter, framework) do
+      original_framework = igniter.args.options[:framework]
 
-      unless framework in ["react", "vue", "svelte"] do
+      if original_framework != framework do
         Igniter.add_warning(
           igniter,
-          "Invalid framework '#{framework}'. Must be 'react', 'vue', or 'svelte'. Using 'react'."
+          "Invalid framework '#{original_framework}'. Must be 'react', 'vue', or 'svelte'. Using 'react'."
         )
       else
         igniter
@@ -185,7 +184,15 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
 
     # Configure nb_routes in config.exs
     defp configure_nb_routes(igniter) do
+      router = Igniter.Libs.Phoenix.web_module_name(igniter, "Router")
+
       igniter
+      |> Igniter.Project.Config.configure(
+        "config.exs",
+        :nb_routes,
+        [:router],
+        router
+      )
       |> Igniter.Project.Config.configure(
         "config.exs",
         :nb_routes,
@@ -207,11 +214,7 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
     end
 
     # Print success message with next steps
-    defp print_success(igniter) do
-      framework = igniter.args.options[:framework] || "react"
-      typescript = igniter.args.options[:typescript] || true
-      ssr = igniter.args.options[:ssr] || false
-
+    defp print_success(igniter, framework, typescript, ssr) do
       extension = if typescript, do: "tsx", else: "jsx"
 
       ssr_info =
