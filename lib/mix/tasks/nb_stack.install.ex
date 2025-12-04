@@ -56,7 +56,13 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
           yes: false
         ],
         positional: [],
-        composes: ["deps.get"],
+        # Declare all tasks we'll compose - enables argument validation
+        composes: [
+          "deps.get",
+          "nb_vite.install",
+          "nb_serializer.install",
+          "nb_inertia.install"
+        ],
         example: "mix igniter.install nb_stack"
       }
     end
@@ -70,14 +76,14 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
       # Configure packages directly (sub-installer add_task doesn't merge config back)
       |> configure_nb_routes()
       |> configure_nb_inertia()
-      # Queue tasks to run after deps.get
-      |> Igniter.add_task("nb_vite.install", ["--typescript"])
-      |> Igniter.add_task("nb_serializer.install", [
+      # Compose Igniter installers (runs synchronously within this igniter)
+      |> Igniter.compose_task("nb_vite.install", ["--typescript"])
+      |> Igniter.compose_task("nb_serializer.install", [
         "--with-phoenix",
         "--camelize-props",
         "--with-typescript"
       ])
-      |> Igniter.add_task("nb_inertia.install", [
+      |> Igniter.compose_task("nb_inertia.install", [
         "--client-framework",
         "react",
         "--camelize-props",
@@ -86,6 +92,7 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
         "--table",
         "--ssr"
       ])
+      # Queue non-Igniter task to run after deps.get
       |> Igniter.add_task("nb_routes.gen", [
         "--style",
         "resource",
