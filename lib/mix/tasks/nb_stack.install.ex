@@ -67,8 +67,9 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
       |> print_welcome()
       # Add GitHub dependencies manually (until published to Hex)
       |> add_github_deps()
-      # Configure nb_routes
+      # Configure packages directly (sub-installer add_task doesn't merge config back)
       |> configure_nb_routes()
+      |> configure_nb_inertia()
       # Queue tasks to run after deps.get
       |> Igniter.add_task("nb_vite.install", ["--typescript"])
       |> Igniter.add_task("nb_serializer.install", [
@@ -126,6 +127,25 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
         :nb_routes,
         [:style],
         :resource
+      )
+    end
+
+    # Configure nb_inertia in config.exs (since sub-installer add_task doesn't merge config)
+    defp configure_nb_inertia(igniter) do
+      {igniter, endpoint_module} = Igniter.Libs.Phoenix.select_endpoint(igniter)
+
+      igniter
+      |> Igniter.Project.Config.configure(
+        "config.exs",
+        :nb_inertia,
+        [:endpoint],
+        endpoint_module
+      )
+      |> Igniter.Project.Config.configure(
+        "config.exs",
+        :nb_inertia,
+        [:camelize_props],
+        true
       )
     end
 
