@@ -56,8 +56,8 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
           yes: false
         ],
         positional: [],
-        # Only declare igniter.install as compose - sub-packages will be installed via it
-        composes: ["igniter.install"],
+        # No composes - we use add_task which queues tasks for after deps.get
+        composes: [],
         example: "mix igniter.install nb_stack"
       }
     end
@@ -66,28 +66,19 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
     def igniter(igniter) do
       igniter
       |> print_welcome()
-      # Configure packages (config goes first so sub-installers can read it)
+      # Add ALL dependencies first (they get fetched after installer runs)
+      |> add_all_deps()
+      # Configure packages (config is needed by sub-installers)
       |> configure_nb_routes()
       |> configure_nb_inertia()
-      # Install sub-packages via igniter.install (handles fetch, compile, and run)
-      |> Igniter.compose_task("igniter.install", [
-        "nb_vite@github:nordbeam/nb_vite",
-        "--yes",
-        "--",
-        "--typescript"
-      ])
-      |> Igniter.compose_task("igniter.install", [
-        "nb_serializer@github:nordbeam/nb_serializer",
-        "--yes",
-        "--",
+      # Queue sub-installer tasks to run AFTER deps.get (when packages are compiled)
+      |> Igniter.add_task("nb_vite.install", ["--typescript"])
+      |> Igniter.add_task("nb_serializer.install", [
         "--with-phoenix",
         "--camelize-props",
         "--with-typescript"
       ])
-      |> Igniter.compose_task("igniter.install", [
-        "nb_inertia@github:nordbeam/nb_inertia",
-        "--yes",
-        "--",
+      |> Igniter.add_task("nb_inertia.install", [
         "--client-framework",
         "react",
         "--camelize-props",
@@ -96,12 +87,29 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
         "--table",
         "--ssr"
       ])
-      # nb_routes just needs to be added as dep and its gen task run
-      |> Igniter.Project.Deps.add_dep({:nb_routes, github: "nordbeam/nb_routes", override: true})
-      |> Igniter.Project.Deps.add_dep({:nb_ts, github: "nordbeam/nb_ts", override: true})
-      |> Igniter.Project.Deps.add_dep({:nb_flop, github: "nordbeam/nb_flop", override: true})
+      |> Igniter.add_task("nb_routes.gen", [
+        "--style",
+        "resource",
+        "--output-dir",
+        "assets/js/routes"
+      ])
       |> create_complete_vite_config()
       |> print_success()
+    end
+
+    # Add all nb_ package dependencies
+    defp add_all_deps(igniter) do
+      igniter
+      |> Igniter.Project.Deps.add_dep({:nb_vite, github: "nordbeam/nb_vite", override: true})
+      |> Igniter.Project.Deps.add_dep({:nb_routes, github: "nordbeam/nb_routes", override: true})
+      |> Igniter.Project.Deps.add_dep(
+        {:nb_serializer, github: "nordbeam/nb_serializer", override: true}
+      )
+      |> Igniter.Project.Deps.add_dep({:nb_ts, github: "nordbeam/nb_ts", override: true})
+      |> Igniter.Project.Deps.add_dep(
+        {:nb_inertia, github: "nordbeam/nb_inertia", override: true}
+      )
+      |> Igniter.Project.Deps.add_dep({:nb_flop, github: "nordbeam/nb_flop", override: true})
     end
 
     # Configure nb_routes in config.exs
