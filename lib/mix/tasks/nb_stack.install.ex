@@ -63,6 +63,8 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
 
     @impl Igniter.Mix.Task
     def igniter(igniter) do
+      yes? = igniter.args.options[:yes] || false
+
       igniter
       |> print_welcome()
       # Add ALL dependencies first
@@ -71,7 +73,10 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
       |> configure_nb_routes()
       |> configure_nb_inertia()
       # Fetch and compile dependencies so sub-installer modules are available
-      |> Igniter.apply_and_fetch_dependencies(operation: "installing nb_stack dependencies")
+      |> Igniter.apply_and_fetch_dependencies(
+        operation: "installing nb_stack dependencies",
+        yes: yes?
+      )
       # Now compose sub-installers inline (deps are compiled and available)
       |> Igniter.compose_task("nb_vite.install", ["--typescript"])
       # Note: --with-typescript omitted because nb_inertia.install handles nb_ts setup
