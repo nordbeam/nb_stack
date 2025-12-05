@@ -64,6 +64,7 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
     @impl Igniter.Mix.Task
     def igniter(igniter) do
       yes? = igniter.args.options[:yes] || false
+      yes_args = if yes?, do: ["--yes"], else: []
 
       igniter
       |> print_welcome()
@@ -78,21 +79,27 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
         yes: yes?
       )
       # Now compose sub-installers inline (deps are compiled and available)
-      |> Igniter.compose_task("nb_vite.install", ["--typescript"])
+      |> Igniter.compose_task("nb_vite.install", ["--typescript"] ++ yes_args)
       # Note: --with-typescript omitted because nb_inertia.install handles nb_ts setup
-      |> Igniter.compose_task("nb_serializer.install", [
-        "--with-phoenix",
-        "--camelize-props"
-      ])
-      |> Igniter.compose_task("nb_inertia.install", [
-        "--client-framework",
-        "react",
-        "--camelize-props",
-        "--typescript",
-        "--with-flop",
-        "--table",
-        "--ssr"
-      ])
+      |> Igniter.compose_task(
+        "nb_serializer.install",
+        [
+          "--with-phoenix",
+          "--camelize-props"
+        ] ++ yes_args
+      )
+      |> Igniter.compose_task(
+        "nb_inertia.install",
+        [
+          "--client-framework",
+          "react",
+          "--camelize-props",
+          "--typescript",
+          "--with-flop",
+          "--table",
+          "--ssr"
+        ] ++ yes_args
+      )
       |> Igniter.add_task("nb_routes.gen", [
         "--style",
         "resource",
