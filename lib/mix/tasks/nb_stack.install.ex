@@ -84,7 +84,6 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
         "--camelize-props",
         "--typescript",
         "--with-flop",
-        "--table",
         "--ssr"
       ])
       |> Igniter.add_task("nb_routes.gen", [
