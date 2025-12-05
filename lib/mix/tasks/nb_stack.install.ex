@@ -56,7 +56,6 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
           yes: false
         ],
         positional: [],
-        # No composes - we use add_task which queues tasks for after deps.get
         composes: [],
         example: "mix igniter.install nb_stack"
       }
@@ -66,19 +65,21 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
     def igniter(igniter) do
       igniter
       |> print_welcome()
-      # Add ALL dependencies first (they get fetched after installer runs)
+      # Add ALL dependencies first
       |> add_all_deps()
       # Configure packages (config is needed by sub-installers)
       |> configure_nb_routes()
       |> configure_nb_inertia()
-      # Queue sub-installer tasks to run AFTER deps.get (when packages are compiled)
-      |> Igniter.add_task("nb_vite.install", ["--typescript"])
-      |> Igniter.add_task("nb_serializer.install", [
+      # Fetch and compile dependencies so sub-installer modules are available
+      |> Igniter.apply_and_fetch_dependencies(operation: "installing nb_stack dependencies")
+      # Now compose sub-installers inline (deps are compiled and available)
+      |> Igniter.compose_task("nb_vite.install", ["--typescript"])
+      # Note: --with-typescript omitted because nb_inertia.install handles nb_ts setup
+      |> Igniter.compose_task("nb_serializer.install", [
         "--with-phoenix",
-        "--camelize-props",
-        "--with-typescript"
+        "--camelize-props"
       ])
-      |> Igniter.add_task("nb_inertia.install", [
+      |> Igniter.compose_task("nb_inertia.install", [
         "--client-framework",
         "react",
         "--camelize-props",
