@@ -190,11 +190,12 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
             manifestPath: "../priv/static/assets/manifest.json",
             refresh: true,
             ssr: "js/ssr.tsx",
+            ssrDev: true,
             ssrOutputDirectory: "../priv/static",
           }),
         ],
         server: {
-          host: process.env.VITE_HOST || "127.0.0.1",
+          host: process.env.VITE_HOST || "localhost",
           port: parseInt(process.env.VITE_PORT || "5173"),
         },
         resolve: {
