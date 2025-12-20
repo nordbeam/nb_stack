@@ -164,6 +164,8 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
     end
 
     # Create complete Vite config with SSR support
+    # Note: We delete vite.config.js first because nb_vite.install creates it,
+    # and we want our .ts version with SSR to take precedence
     defp create_complete_vite_config(igniter) do
       config = """
       import { defineConfig } from "vite";
@@ -195,7 +197,7 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
           }),
         ],
         server: {
-          host: process.env.VITE_HOST || "localhost",
+          host: process.env.VITE_HOST || "127.0.0.1",
           port: parseInt(process.env.VITE_PORT || "5173"),
         },
         resolve: {
@@ -206,7 +208,8 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
       });
       """
 
-      Igniter.create_new_file(igniter, "assets/vite.config.ts", config, on_exists: :overwrite)
+      # Use .js extension to match what nb_vite.install creates, with overwrite
+      Igniter.create_new_file(igniter, "assets/vite.config.js", config, on_exists: :overwrite)
     end
 
     # Print welcome message
